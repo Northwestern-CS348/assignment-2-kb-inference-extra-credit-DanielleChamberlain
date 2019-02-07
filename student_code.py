@@ -129,6 +129,54 @@ class KnowledgeBase(object):
         ####################################################
         # Implementation goes here
         # Not required for the extra credit assignment
+    def kb_help_ex(self, fact_or_rule, it):
+        if isinstance(fact_or_rule, Fact):
+            string = "Fact is not in the KB"
+            for f in self.facts:
+                if f.statement == fact_or_rule.statement:
+                    string = 'fact: ' + f.statement.__str__()
+                    if f.asserted:
+                        string += ' ASSERTED'
+                    string += '\n'
+                    if f.supported_by != []:
+                        for each in f.supported_by:
+                            d = it + 2
+                            hel = "{:>" + d.__str__() + "}"
+                            string += hel.format('') + 'SUPPORTED BY\n'
+                            u = it + 4
+                            help1 = "{:>" + u.__str__() + "}"
+                            string += help1.format('') + self.kb_help_ex(each[0], (it + 4))
+                            string += help1.format('') + self.kb_help_ex(each[1], (it + 4))
+            #print(string)
+            return string
+        if isinstance(fact_or_rule, Rule):
+            string = 'Rule is not in the KB'
+            for r in self.rules:
+                if r.lhs == fact_or_rule.lhs and r.rhs == fact_or_rule.rhs:
+                    string = 'rule: ('
+                    for s in r.lhs:
+                        if s != r.lhs[0]:
+                            string += ", "
+                        string += s.__str__()
+                    string += ') -> ' + r.rhs.__str__()
+                    if r.asserted:
+                        string += ' ASSERTED'
+                    string += '\n'
+                    if r.supported_by != []:
+                        for each in r.supported_by:
+                            d = 2 + it
+                            hel = "{:>" + d.__str__() + "}"
+                            string += hel.format('') + 'SUPPORTED BY\n'
+                            u = 4 + it
+                            help1 = "{:>" + u.__str__() + "}"
+                            string += help1.format('') + self.kb_help_ex(each[0], (it + 4))
+                            string += help1.format('') + self.kb_help_ex(each[1], (it + 4))
+            #print(string)
+            return string
+        else:
+            string = 'Error: not a Fact or Rule'
+            #print(string)
+            return string
 
     def kb_explain(self, fact_or_rule):
         """
@@ -142,6 +190,8 @@ class KnowledgeBase(object):
         """
         ####################################################
         # Student code goes here
+        exp = self.kb_help_ex(fact_or_rule, 0)
+        return exp
 
 
 class InferenceEngine(object):
@@ -161,3 +211,25 @@ class InferenceEngine(object):
         ####################################################
         # Implementation goes here
         # Not required for the extra credit assignment
+        binds = match(rule.lhs[0], fact.statement)
+        if (binds):
+            t = instantiate(rule.rhs, binds)
+            if len(rule.lhs) > 1:
+                # print('infer new rule')
+                new_rule = Rule([[], t])
+                new_rule.asserted = False
+                new_rule.supported_by.append([fact, rule])
+                for sta in rule.lhs:
+                    if sta != rule.lhs[0]:
+                        new_rule.lhs.append(instantiate(sta, binds))
+                kb.kb_add(new_rule)
+                fact.supports_rules.append(new_rule)
+                rule.supports_rules.append(new_rule)
+            else:
+                # print('infer new fact')
+                new_fact = Fact(t)
+                new_fact.asserted = False
+                new_fact.supported_by.append([fact, rule])
+                kb.kb_add(new_fact)
+                fact.supports_facts.append(new_fact)
+                rule.supports_facts.append(new_fact)
